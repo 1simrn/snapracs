@@ -1,0 +1,54 @@
+import networkx as nx
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+np.random.seed(42)
+
+n = 1000
+p = 0.01
+k = 10
+m = 5
+
+G_random = nx.erdos_renyi_graph(n, p)
+G_smallworld = nx.watts_strogatz_graph(n, k, 0.1)
+G_preferential = nx.barabasi_albert_graph(n, m)
+
+def compute_characteristics(G, name):
+    degrees = [d for _, d in G.degree()]
+    avg_degree = np.mean(degrees)
+    clustering = nx.average_clustering(G)
+
+    largest_cc = max(nx.connected_components(G), key=len)
+    subgraph = G.subgraph(largest_cc)
+    avg_path_length = nx.average_shortest_path_length(subgraph)
+    diameter = nx.diameter(subgraph)
+
+    return {
+        "Model": name,
+        "Nodes": G.number_of_nodes(),
+        "Edges": G.number_of_edges(),
+        "Avg Degree": round(avg_degree, 2),
+        "Avg Clustering coefficient": round(clustering, 4),
+        "Avg Path Length": round(avg_path_length, 4),
+        "Diameter": diameter
+    }
+    
+results = []
+results.append(compute_characteristics(G_random, "Random Network"))
+results.append(compute_characteristics(G_smallworld, "Small-World Network"))
+results.append(compute_characteristics(G_preferential, "Preferential Attachment"))
+
+df = pd.DataFrame(results)
+print(df)
+
+plt.figure(figsize=(12, 4))
+models = [("Random", G_random), ("Small-World", G_smallworld), ("Preferential", G_preferential)]
+
+for i, (name, G) in enumerate(models, 1):
+    plt.subplot(1, 3, i)
+    degrees = [d for _, d in G.degree()]
+    plt.hist(degrees, bins=30, alpha=0.7)
+    plt.title(f"{name} Model")
+plt.tight_layout()
+plt.show()
