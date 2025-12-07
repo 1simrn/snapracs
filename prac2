@@ -1,0 +1,136 @@
+2A) Deg distribution, local and global properties of **PoliticalBooks Dataset**
+
+import networkx as nx
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+df = pd.read_csv("/content/PoliticalBooks.txt", delimiter = '\t',header=1, names = ['source','target'])
+G = nx.from_pandas_edgelist(df, source = 'source')
+
+print("Global Properties of Political Books Network:- \n")
+print(f"Total number of nodes = {G.number_of_nodes()}")
+print(f"Total number of Edges = {G.number_of_edges()}")
+print(f"Average Degree = {2*G.number_of_edges()/G.number_of_nodes()}")
+print(f"Diameter = {nx.diameter(G)}")
+print(f"GCC = {nx.average_clustering(G)}")
+
+degree_centrality = nx.degree_centrality(G)
+print("\nGlobal Degree Centrality (average):", sum(degree_centrality.values()) / len(degree_centrality))
+
+closeness_centrality = nx.closeness_centrality(G)
+print("Global Closeness Centrality (average):", sum(closeness_centrality.values()) / len(closeness_centrality))
+
+betweenness_centrality = nx.betweenness_centrality(G)
+print("Global Betweenness Centrality (average):", sum(betweenness_centrality.values()) / len(betweenness_centrality))
+
+local_properties = {}
+
+for node in G.nodes():
+    local_properties[node] = {
+        "degree": G.degree(node),
+        "weighted_degree": G.degree(node, weight="weight"),
+        "indegree": G.degree(node),      # undirected → same as degree
+        "outdegree": G.degree(node),
+        "local_clustering_coeff": nx.clustering(G, node),
+        "degree_centrality": nx.degree_centrality(G)[node],
+        "closeness_centrality": nx.closeness_centrality(G)[node],
+        "betweenness_centrality": nx.betweenness_centrality(G)[node]
+    }
+
+print("\nLocal Properties:- ")
+for node, props in local_properties.items():
+    print(f"\nNode: {node}")
+    for k, v in props.items():
+        print(f"  {k}: {v}")
+
+
+deg_sequence = [d for n, d in G.degree()]
+degree_count = {d: deg_sequence.count(d) for d in set(deg_sequence)}
+
+degrees = list(degree_count.keys())       # x-axis
+counts = list(degree_count.values())      # number of nodes with degree d
+
+total_nodes = G.number_of_nodes()
+probab = [c / total_nodes for c in counts]
+
+plt.figure(figsize=(10, 6))
+plt.loglog(degrees, probab, 'o-', markersize=5)
+
+plt.xlabel("Degree (k)")
+plt.ylabel("Probability P(k)")
+plt.title("Degree Distribution")
+plt.grid(True, which="both", ls="--", linewidth=0.5)
+plt.show()
+
+
+cumulative_probs = np.cumsum(counts) / total_nodes
+
+plt.figure(figsize=(10, 6))
+plt.loglog(degrees, cumulative_probs, 'o-', markersize=5)
+
+plt.xlabel("Degree (k)")
+plt.ylabel("P(K ≤ k)")
+plt.title("Cumulative Degree Distribution (CDD)")
+plt.grid(True, which="both", ls="--", linewidth=0.5)
+plt.show()
+
+
+**2B) Implement Page rank algorithm**
+
+import networkx as nx
+import numpy as np
+
+G = nx.DiGraph()
+edges = [
+    ("A", "B"),
+    ("A", "C"),
+    ("B", "C"),
+    ("C", "A")
+]
+G.add_edges_from(edges)
+
+def page_rank_manual(G, d=0.85, tol=1e-6, max_iter=100): #tolerance:below this convergence stops
+    nodes = list(G.nodes())
+    N = len(nodes)
+
+    pr = dict.fromkeys(nodes, 1 / N)
+
+    out_degree = {node: len(G.out_edges(node)) for node in nodes}
+
+    for i in range(max_iter):
+        new_pr = {}
+        for node in nodes:
+            rank_sum = 0.0
+            # Sum PageRank of incoming links
+            for neighbor in G.predecessors(node):
+                rank_sum += pr[neighbor] / out_degree[neighbor]
+
+            new_pr[node] = (1 - d) / N + d * rank_sum
+
+        # Compute difference for convergence if diff less than tol stop iteration
+        diff = sum(abs(new_pr[n] - pr[n]) for n in nodes)
+
+        pr = new_pr
+
+        if diff < tol:
+            print(f"Converged after {i+1} iterations")
+            return pr, i+1
+
+    print("Did not converge within max iterations")
+    return pr, max_iter
+
+manual_pr, iterations = page_rank_manual(G)
+print("\nManual PageRank values:")
+for node, score in manual_pr.items():
+    print(f"{node}: {score:.7f}")
+
+nx_pr = nx.pagerank(G, alpha=0.85, tol=1e-6)
+print("\nNetworkX PageRank values:")
+for node, score in nx_pr.items():
+    print(f"{node}: {score:.7f}")
+
+
+print("\nComparison:")
+for node in G.nodes():
+    print(f"{node}: Manual={manual_pr[node]:.7f}, NetworkX={nx_pr[node]:.7f}")
