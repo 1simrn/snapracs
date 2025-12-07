@@ -1,0 +1,183 @@
+import networkx as nx
+import matplotlib.pyplot as plt
+
+### Practical 1  
+i)
+*A weighted undirected network such that the node size, edge width, and edge length is proportional to the degree and edge weight respectively*
+
+G = nx.Graph()
+edges = [
+    ("A", "B", 3),
+    ("A", "C", 2),
+    ("B", "C", 5),
+    ("C", "A", 1),
+    ("C", "D", 4),
+    ("D", "B", 2)
+]
+G.add_weighted_edges_from(edges)
+
+degrees = dict(G.degree())
+
+node_sizes = [400 + 300 * degrees[n] for n in G.nodes()]  #Node Size ∝ Degree
+
+edge_widths = [1 + 1.5 * G[u][v]['weight'] for u, v in G.edges()]  #Edge width ∝ weight
+
+# Edge lengths ∝ 1/weight (higher weight = shorter distance)
+pos = nx.spring_layout(G, weight='weight')
+
+nx.draw_networkx_nodes(G, pos, node_size=node_sizes,
+                       node_color='skyblue', edgecolors="black")
+nx.draw_networkx_edges(G, pos, width=edge_widths, edge_color='gray')
+nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold")
+
+weights = nx.get_edge_attributes(G, 'weight')
+nx.draw_networkx_edge_labels(G, pos, edge_labels=weights, font_size=10)
+
+plt.title("Weighted Network (Node Size ∝ Degree, Edge Width & Length ∝ Weight)")
+plt.axis("off")
+plt.show()
+
+ii)
+A weighted directed network such that the node size and edge width is proportional to the degree and edge weight respectively. Modify the edge weight and show the plot of node size wrt in-deg and out-deg
+
+G = nx.DiGraph()
+
+edges = [
+    ("A", "B", 3),
+    ("A", "C", 1),
+    ("B", "C", 5),
+    ("C", "A", 1),
+    ("C", "D", 4),
+    ("D", "B", 2)
+]
+G.add_weighted_edges_from(edges)
+
+in_deg  = dict(G.in_degree())
+out_deg = dict(G.out_degree())
+total_deg = {n: in_deg[n] + out_deg[n] for n in G.nodes()}
+
+node_sizes = [400 + 300 * total_deg[n] for n in G.nodes()] #Node Size ∝ Degree
+node_sizes_in = [400 + 300 * in_deg[n] for n in G.nodes()] #Node Size ∝ Indegree
+node_sizes_out = [400 + 300 * out_deg[n] for n in G.nodes()] #Node Size ∝ Outdegree
+edge_widths = [1 + 1.5 * G[u][v]['weight'] for u, v in G.edges()]  #Edge width ∝ weight
+
+pos = nx.spring_layout(G, weight='weight')
+weights = nx.get_edge_attributes(G, 'weight')
+
+def draw_graph(node_sizes, node_color, title, edge_color="gray"):
+    plt.figure(figsize=(8, 6))
+
+    nx.draw_networkx_nodes(
+        G, pos,
+        node_size=node_sizes,
+        node_color=node_color,
+        edgecolors="black"
+    )
+
+    nx.draw_networkx_edges(
+        G, pos,
+        width=edge_widths,
+        edge_color=edge_color,
+        arrows=True,
+        arrowsize=20,
+        connectionstyle="arc3,rad=0.1"
+    )
+
+    nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold")
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=weights, font_size=10)
+
+    plt.title(title)
+    plt.axis("off")
+    plt.show()
+
+#Degree graph
+draw_graph(
+    node_sizes,
+    node_color="skyblue",
+    title="Weighted Directed Network\n(Node Size ∝ Degree, Edge Width ∝ Weight)"
+)
+
+#Indegree graph
+draw_graph(
+    node_sizes_in,
+    node_color="red",
+    edge_color="black",
+    title="Weighted Directed Network\n(Node Size ∝ Indegree, Edge Width ∝ Weight)"
+)
+
+#Outdegree graph
+draw_graph(
+    node_sizes_out,
+    node_color="green",
+    edge_color="darkgray",
+    title="Weighted Directed Network\n(Node Size ∝ Outdegree, Edge Width ∝ Weight)"
+)
+
+3 *. REAL WORLD NETWORK*
+G_directed = nx.read_edgelist(
+    "/content/Bali.txt",
+    nodetype=str,
+    data=(("weight", float),),
+    create_using=nx.DiGraph()
+)
+
+*iii) a) Unweighted, undirected st node size is proportional to degree*
+
+G_undirected = nx.Graph()
+
+for u, v, data in G_directed.edges(data=True):
+    G_undirected.add_edge(u, v)
+
+# Degree-based node size
+degree = dict(G_undirected.degree())
+node_sizes = [degree[n] * 80 for n in G_undirected.nodes()]
+
+plt.figure(figsize=(12, 8))
+pos = nx.spring_layout(G_undirected)
+
+nx.draw(
+    G_undirected,
+    pos,
+    with_labels=True,
+    node_size=node_sizes,
+    node_color="skyblue",
+    edge_color="gray",
+    font_size=8
+)
+
+plt.title("Unweighted, Undirected Network (Node size ∝ Degree)")
+plt.show()
+
+iii)
+b)Weighted directed (nodesize and edge width proportional to indegree and edge weight)
+
+in_degree = dict(G_directed.in_degree())
+node_sizes_in = [in_degree[n] * 300 for n in G_directed.nodes()]  # scaling
+
+
+edge_weights = [data["weight"] for _, _, data in G_directed.edges(data=True)]
+
+plt.figure(figsize=(12, 8))
+pos = nx.spring_layout(G_directed)
+
+nx.draw_networkx_nodes(
+    G_directed,
+    pos,
+    node_size=node_sizes_in,
+    node_color="lightgreen"
+)
+
+nx.draw_networkx_labels(G_directed, pos)
+
+nx.draw_networkx_edges(
+    G_directed,
+    pos,
+    width=edge_weights,
+    arrowsize=20,
+    arrowstyle="-|>",
+    edge_color="black"
+)
+
+plt.title("Weighted, Directed Network\n(Node size ∝ In-degree, Edge width ∝ Weight)")
+plt.axis("off")
+plt.show()
